@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab Results Timeline</title>
+<style>
+html, body{ margin:0; padding:0; }
+
+.viz-root{
+  color-scheme: light;
+  --surface-1:      #fcfcfb;
+  --page:           #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --baseline:       #c3c2b7;
+  --border:         rgba(11,11,11,0.10);
+  --series-1:       #2a78d6;
+  --series-1-soft:  rgba(42,120,214,0.14);
+  --status-warning: #fab219;
+  --status-critical:#d03b3b;
+  --chip-bg:        #f0efec;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])) .viz-root{
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-1-soft:  rgba(57,135,229,0.20);
+    --status-warning: #fab219;
+    --status-critical:#e66767;
+    --chip-bg:        #232320;
+  }
+}
+:root[data-theme="dark"] .viz-root{
+  color-scheme: dark;
+  --surface-1:      #1a1a19;
+  --page:           #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --baseline:       #383835;
+  --border:         rgba(255,255,255,0.10);
+  --series-1:       #3987e5;
+  --series-1-soft:  rgba(57,135,229,0.20);
+  --status-warning: #fab219;
+  --status-critical:#e66767;
+  --chip-bg:        #232320;
+}
+
+.viz-root{ background:var(--page); color:var(--text-primary); min-height:100%; padding-bottom:48px; }
+.viz-root *{ box-sizing:border-box; }
+
+.top{ background:var(--page); border-bottom:1px solid var(--border); padding:16px 20px 12px; }
+.top h1{ margin:0 0 2px; font-size:19px; font-weight:700; letter-spacing:-.01em; }
+.top .sub{ margin:0; font-size:12.5px; color:var(--text-secondary); }
+
+.search{ margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.search input[type="text"]{
+  flex:1; min-width:220px; max-width:360px; font: inherit; font-size:13px; padding:8px 12px;
+  border-radius:8px; border:1px solid var(--border); background:var(--surface-1);
+  color:var(--text-primary); outline:none;
+}
+.search input[type="text"]:focus{ border-color:var(--series-1); }
+.search .count{ font-size:12px; color:var(--text-muted); }
+.privacy-note{ font-size:11px; color:var(--text-muted); margin:6px 0 0; }
+.privacy-note code{ background:var(--chip-bg); padding:1px 5px; border-radius:4px; font-size:10.5px; }
+
+.no-data{
+  background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+  padding:40px 28px; text-align:center; color:var(--text-secondary); font-size:13.5px; line-height:1.7; max-width:520px; margin:24px auto;
+}
+.no-data h2{ font-size:17px; color:var(--text-primary); margin:0 0 10px; }
+.no-data code{ background:var(--chip-bg); padding:2px 6px; border-radius:4px; font-size:12.5px; color:var(--text-primary); }
+
+.kpis{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+.kpi{ background:var(--surface-1); border:1px solid var(--border); border-radius:10px; padding:9px 14px; min-width:128px; }
+.kpi .v{ font-size:20px; font-weight:700; line-height:1.1; }
+.kpi .l{ font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+.nav{ display:flex; gap:6px; flex-wrap:wrap; padding:12px 20px 0; background:var(--page); }
+.nav a{
+  font-size:12px; color:var(--text-secondary); text-decoration:none; padding:6px 10px;
+  border-radius:999px; border:1px solid var(--border); background:var(--surface-1); white-space:nowrap;
+}
+.nav a:hover{ color:var(--text-primary); border-color:var(--series-1); }
+
+main{ padding:18px 20px 0; max-width:2000px; }
+
+.callout{
+  background:var(--surface-1); border:1px solid var(--border); border-left:3px solid var(--status-warning);
+  border-radius:8px; padding:10px 14px; font-size:12.5px; color:var(--text-secondary); margin:0 0 18px; line-height:1.5;
+}
+.callout b{ color:var(--text-primary); }
+
+section.cat{ margin-bottom:30px; scroll-margin-top:180px; }
+section.cat h2{ font-size:15px; margin:0 0 2px; font-weight:700; }
+section.cat .cat-note{ font-size:12px; color:var(--text-muted); margin:0 0 12px; }
+
+.grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(516px, 1fr)); gap:20px; }
+
+.card{
+  background:var(--surface-1); border:1px solid var(--border); border-radius:12px;
+  padding:18px 20px 16px; display:flex; flex-direction:column; gap:10px;
+}
+.card-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.card-title{ font-size:15px; font-weight:600; color:var(--text-primary); line-height:1.25; }
+.card-value{ font-size:24px; font-weight:700; white-space:nowrap; font-variant-numeric: tabular-nums; }
+.card-value .unit{ font-size:13px; font-weight:500; color:var(--text-muted); margin-left:3px; }
+.card-value.flag{ color:var(--status-critical); }
+
+.chart-svg{ width:100%; height:auto; display:block; overflow:visible; }
+.ref-band{ fill:var(--series-1-soft); }
+.ref-thresh{ stroke:var(--text-muted); stroke-width:1; stroke-dasharray:3 3; }
+.series-line{ fill:none; stroke:var(--series-1); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.dot{ cursor:pointer; }
+.dot-normal{ fill:var(--surface-1); stroke:var(--series-1); stroke-width:2; }
+.dot-flag{ fill:var(--status-critical); stroke:var(--surface-1); stroke-width:1.5; }
+.axis-label{ font-size:8.5px; fill:var(--text-muted); font-family:inherit; }
+.year-grid{ stroke:var(--grid); stroke-width:1; }
+.range-label{ font-size:8px; fill:var(--text-muted); font-family:inherit; }
+
+.card-foot{ font-size:12.5px; color:var(--text-muted); }
+
+.tooltip{
+  position:fixed; pointer-events:none; z-index:100; background:var(--text-primary); color:var(--page);
+  font-size:11.5px; padding:6px 9px; border-radius:6px; max-width:220px; line-height:1.35;
+  transform:translate(-50%,-115%); opacity:0; transition:opacity .08s ease; box-shadow:0 4px 14px rgba(0,0,0,.25);
+}
+.tooltip.show{ opacity:1; }
+
+.legend-row{ display:flex; gap:16px; flex-wrap:wrap; font-size:11.5px; color:var(--text-secondary); margin:0 0 14px; }
+.legend-row span{ display:inline-flex; align-items:center; gap:6px; }
+.legend-swatch{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+.legend-swatch.normal{ background:var(--surface-1); border:2px solid var(--series-1); }
+.legend-swatch.flag{ background:var(--status-critical); transform:rotate(45deg); border-radius:2px; }
+
+table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+thead th{
+  text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-muted);
+  padding:6px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--page);
+}
+tbody td{ padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+tbody tr:hover td{ background:var(--surface-1); }
+.table-wrap{ background:var(--surface-1); border:1px solid var(--border); border-radius:12px; overflow:auto; max-height:520px; }
+.pill{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; }
+.pill.high{ background:rgba(250,178,25,.18); color:#a3690a; }
+.pill.crit{ background:rgba(208,59,59,.16); color:var(--status-critical); }
+.pill.low{ background:rgba(42,120,214,.14); color:var(--series-1); }
+.muted{ color:var(--text-muted); }
+.tname{ font-weight:600; }
+
+.empty-state{ font-size:12.5px; color:var(--text-muted); padding:20px 4px; }
+
+footer.note{ font-size:11px; color:var(--text-muted); margin-top:26px; padding-top:14px; border-top:1px solid var(--border); line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <div class="top">
+    <h1>Lab Results Timeline</h1>
+    <p class="sub" id="subhead">Personal reference visualization built from a lab-results export.</p>
+    <div class="kpis">
+      <div class="kpi"><div class="v" id="kpiVisits">–</div><div class="l">Lab visits</div></div>
+      <div class="kpi"><div class="v" id="kpiSpan">–</div><div class="l">Years covered</div></div>
+      <div class="kpi"><div class="v" id="kpiCharts">–</div><div class="l">Trends charted</div></div>
+      <div class="kpi"><div class="v" id="kpiFlags">–</div><div class="l">Flagged results</div></div>
+    </div>
+    <div class="search">
+      <input id="searchBox" type="text" placeholder="Search a test name (e.g. creatinine, cholesterol, PTH)…" />
+      <span class="count" id="searchCount"></span>
+    </div>
+    <p class="privacy-note">Reads <code id="dataFileLabel">lab-results.js</code> from the same folder as this page —
+      opens straight from disk, no server, and nothing is ever sent anywhere.</p>
+  </div>
+
+  <div class="nav" id="navRow"></div>
+
+  <main>
+    <div class="callout" id="introCallout" hidden>
+      <b>Reading this page:</b> each card is one lab test tracked over time. The shaded band (or dashed line) is the
+      lab&rsquo;s normal reference range; a diamond marker means that result was flagged outside range. Hover any point
+      for the exact date and value. The table at the bottom holds one-off tests, screening panels, and qualitative
+      findings that don&rsquo;t have enough repeat numeric measurements for a trend line.
+    </div>
+    <div class="no-data" id="noDataState" hidden>
+      <h2>No data loaded yet</h2>
+      <p>This page looks for <code id="noDataFile">lab-results.js</code> next to it and didn&rsquo;t find it (or it
+        didn&rsquo;t contain a <code>LAB_RESULTS</code> array).</p>
+      <p>Save your exported results there — see <code>README.md</code> for the two-line format — then reopen this page.</p>
+    </div>
+    <div class="legend-row" id="legendRow" hidden>
+      <span><span class="legend-swatch normal"></span> Within reference range</span>
+      <span><span class="legend-swatch flag"></span> Flagged (high / low / abnormal)</span>
+    </div>
+
+    <div id="chartSections"></div>
+    <div class="empty-state" id="emptyState" hidden>No lab tests found in this file. Check it's an array of visit records in the expected shape (see README.md).</div>
+
+    <section class="cat" id="cat-table">
+      <h2>Notable findings &amp; single-visit screening</h2>
+      <p class="cat-note">Tests measured only once or twice, and qualitative results (dipstick, microscopy, screens) that don&rsquo;t have a numeric trend to chart.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Category</th><th>Test</th><th>Result</th><th>Reference</th><th>Flag</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="note">
+      Reference ranges and flags are copied from the source lab reports; ranges can vary between labs and over time
+      as methods change, so trends matter more than any single cutoff. This is not medical advice — discuss any
+      concerning trend with your care provider.
+    </footer>
+  </main>
+
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // This page fetches a JSON file (default: lab-data.json, next to this HTML file) and
+  // derives every chart and table row from it generically so it works the same way for any
+  // export from the same provider. See README.md for the expected shape and setup.
+
+  // ---------- generic parsing: raw provider JSON -> { DATA, TABLE_ROWS } ----------
+
+  // A couple of standardized clinical thresholds keyed by this provider's own source-test
+  // code (not specific to any one patient) — used only when present, otherwise ignored.
+  var KNOWN_THRESHOLDS = {
+    "EGFR1": { value:60, label:"Normal ≥ 60" },
+    "MACRT": { value:3,  label:"CKD threshold ≥ 3" }
+  };
+  var SOURCE_CODE_TYPE = /sourceTestCode/i;
+
+  function getSourceCode(clinicalCode){
+    if(!clinicalCode || !Array.isArray(clinicalCode.code)) return null;
+    for(var i=0;i<clinicalCode.code.length;i++){
+      var c = clinicalCode.code[i];
+      if(c && SOURCE_CODE_TYPE.test(c.type||"")) return c.value;
+    }
+    return null;
+  }
+
+  function parseRange(text){
+    if(!text) return null;
+    var m = String(text).match(/^\s*(-?\d+(?:\.\d+)?)\s*[-–—]\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if(!m) return null;
+    var a = parseFloat(m[1]), b = parseFloat(m[2]);
+    if(isNaN(a) || isNaN(b)) return null;
+    return [Math.min(a,b), Math.max(a,b)];
+  }
+
+  function normalizeFlag(code, indicatorText, value, range, isValueInRange){
+    var known = { H:"H", L:"L", HH:"HH", LL:"LL", A:"A" };
+    if(code && known[String(code).toUpperCase()]) return known[String(code).toUpperCase()];
+    if(indicatorText){
+      var t = String(indicatorText).toLowerCase();
+      if(t.indexOf("panic")>=0 && t.indexOf("above")>=0) return "HH";
+      if(t.indexOf("panic")>=0 && t.indexOf("below")>=0) return "LL";
+      if(t.indexOf("above")>=0) return "H";
+      if(t.indexOf("below")>=0) return "L";
+      if(t.indexOf("abnormal")>=0) return "A";
+    }
+    if(isValueInRange===false && range && typeof value==="number"){
+      if(value>range[1]) return "H";
+      if(value<range[0]) return "L";
+      return "A";
+    }
+    return null;
+  }
+
+  function dateOnly(iso){ return iso ? String(iso).slice(0,10) : null; }
+
+  function buildFromRawRecords(records){
+    var categories = {};   // catName -> { testName -> {unit, range, threshold, points:[], display:[]} }
+    var tableRows = [];
+    var skipped = 0;
+
+    (records||[]).forEach(function(rec){
+      try{
+        var date = dateOnly(rec.labResultDate);
+        if(!date || !Array.isArray(rec.group)) { return; }
+        rec.group.forEach(function(grp){
+          var catName = (grp.groupName && grp.groupName.trim()) || "Other";
+          var results = Array.isArray(grp.results) ? grp.results : [];
+          if(!results.length){
+            if(grp.attachmentCount){
+              tableRows.push([date, catName, catName, "See attached report", "—", null]);
+            }
+            return;
+          }
+          results.forEach(function(res){
+            var cc = res.clinicalCode || {};
+            var testName = (cc.text && cc.text.trim()) || (res.name && res.name.trim()) || catName;
+            var vals = res.values || {};
+            var unit = vals.unitText || "";
+            var range = parseRange(vals.rangeDisplayText);
+            var sourceCode = getSourceCode(cc);
+            var threshold = (sourceCode && KNOWN_THRESHOLDS[sourceCode]) || null;
+            var raw = vals.value;
+            var num = (raw!==undefined && raw!==null && raw!=="") ? parseFloat(raw) : NaN;
+            var flag = normalizeFlag(res.interpretationCode, res.abnormalityIndicator || res.flagNote,
+                                      isNaN(num) ? null : num, range, vals.isValueInRange);
+
+            if(!categories[catName]) categories[catName] = {};
+            if(!categories[catName][testName]) categories[catName][testName] = { unit:"", range:null, threshold:null, points:[], display:[] };
+            var slot = categories[catName][testName];
+            if(!slot.unit && unit) slot.unit = unit;
+            if(!slot.range && range) slot.range = range;
+            if(!slot.threshold && threshold) slot.threshold = threshold;
+
+            if(!isNaN(num)){
+              slot.points.push([date, num, flag]);
+            } else {
+              var display = vals.displayValue != null ? String(vals.displayValue) : "";
+              if(display) slot.display.push([date, display, flag]);
+            }
+          });
+        });
+      } catch(e){ skipped++; }
+    });
+
+    var DATA = {};
+    Object.keys(categories).forEach(function(catName){
+      var tests = categories[catName];
+      var chartTests = [];
+      Object.keys(tests).forEach(function(testName){
+        var t = tests[testName];
+        t.points.sort(function(a,b){ return a[0]<b[0]?-1:(a[0]>b[0]?1:0); });
+        t.display.sort(function(a,b){ return a[0]<b[0]?-1:(a[0]>b[0]?1:0); });
+        var refText = t.range ? (t.range[0]+"–"+t.range[1]) : "—";
+        if(t.points.length>=2){
+          chartTests.push({ name:testName, unit:t.unit, range:t.range, threshold:t.threshold, points:t.points });
+          t.display.forEach(function(d){ tableRows.push([d[0], catName, testName, d[1], refText, d[2]]); });
+        } else {
+          t.points.forEach(function(p){ tableRows.push([p[0], catName, testName, String(p[1])+(t.unit?(" "+t.unit):""), refText, p[2]]); });
+          t.display.forEach(function(d){ tableRows.push([d[0], catName, testName, d[1], refText, d[2]]); });
+        }
+      });
+      if(chartTests.length){
+        chartTests.sort(function(a,b){ return b.points.length - a.points.length; });
+        DATA[catName] = { tests: chartTests };
+      }
+    });
+
+    tableRows.sort(function(a,b){ return a[0]<b[0] ? 1 : (a[0]>b[0] ? -1 : 0); });
+    return { DATA:DATA, TABLE_ROWS:tableRows, skipped:skipped };
+  }
+
+  // ---------- render helpers ----------
+  function flagClass(f){
+    if(f==="HH"||f==="LL") return "pill crit";
+    if(f==="H"||f==="A") return "pill high";
+    if(f==="L") return "pill low";
+    return "";
+  }
+  function flagText(f){
+    return { H:"High", L:"Low", HH:"Critical high", LL:"Critical low", A:"Abnormal" }[f] || "";
+  }
+  function fmtDate(iso){
+    var d = new Date(iso+"T00:00:00");
+    return d.toLocaleDateString("en-US",{month:"short",year:"2-digit"});
+  }
+  function fmtDateFull(iso){
+    var d = new Date(iso+"T00:00:00");
+    return d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  }
+  function escapeHTML(s){
+    return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,""); }
+  function fmtNum(v){ return String(v); }
+
+  function yearTicks(x0, x1){
+    var yStart = new Date(x0).getFullYear();
+    var yEnd = new Date(x1).getFullYear();
+    var ticks = [];
+    for(var y=yStart; y<=yEnd; y++){
+      var jan1 = new Date(y+"-01-01T00:00:00").getTime();
+      ticks.push({ year:y, t: Math.max(x0, jan1) });
+    }
+    return ticks;
+  }
+
+  function buildChartSVG(test){
+    var pts = test.points.filter(function(p){ return typeof p[1]==="number"; });
+    if(!pts.length) return {svg:"", last:null};
+    var xs = pts.map(function(p){ return new Date(p[0]+"T00:00:00").getTime(); });
+    var ys = pts.map(function(p){ return p[1]; });
+    var allY = ys.slice();
+    if(test.range){ allY.push(test.range[0], test.range[1]); }
+    if(test.threshold){ allY.push(test.threshold.value); }
+    var yMin = Math.min.apply(null, allY), yMax = Math.max.apply(null, allY);
+    if(yMin===yMax){ yMin -= 1; yMax += 1; }
+    var padY = (yMax-yMin)*0.20;
+    var y0 = yMin-padY, y1 = yMax+padY;
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    if(x0===x1){ x0 -= 86400000; x1 += 86400000; }
+    var W=300, H=134, ML=8, MR=30, MT=14, MB=22;
+    var xw=W-ML-MR, yh=H-MT-MB;
+    function X(t){ return ML + (t-x0)/(x1-x0)*xw; }
+    function Y(v){ return MT + (1-(v-y0)/(y1-y0))*yh; }
+
+    var gridSvg = "", bandSvg = "", markSvg = "", labelSvg = "";
+
+    yearTicks(x0,x1).forEach(function(tk){
+      var tx = X(tk.t);
+      gridSvg += '<line class="year-grid" x1="'+tx.toFixed(1)+'" x2="'+tx.toFixed(1)+'" y1="'+MT+'" y2="'+(H-MB)+'"></line>';
+      var anchor = tx < ML+15 ? "start" : (tx > ML+xw-15 ? "end" : "middle");
+      labelSvg += '<text class="axis-label" x="'+tx.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+anchor+'">'+tk.year+'</text>';
+    });
+
+    if(test.range){
+      var lo=test.range[0], hi=test.range[1];
+      var yTop = Y(Math.min(hi,y1)), yBot = Y(Math.max(lo,y0));
+      bandSvg += '<rect class="ref-band" x="'+ML+'" y="'+yTop.toFixed(1)+'" width="'+xw+'" height="'+Math.max(0,(yBot-yTop)).toFixed(1)+'"></rect>';
+      var hiY = yTop+3, loY = yBot+3;
+      if(loY-hiY < 9){ var mid=(hiY+loY)/2; hiY=mid-4.5; loY=mid+4.5; }
+      labelSvg += '<text class="range-label" x="'+(W-2)+'" y="'+hiY.toFixed(1)+'" text-anchor="end">'+escapeHTML(fmtNum(hi))+'</text>';
+      labelSvg += '<text class="range-label" x="'+(W-2)+'" y="'+loY.toFixed(1)+'" text-anchor="end">'+escapeHTML(fmtNum(lo))+'</text>';
+    }
+    if(test.threshold){
+      var ty = Y(test.threshold.value);
+      bandSvg += '<line class="ref-thresh" x1="'+ML+'" x2="'+(ML+xw)+'" y1="'+ty.toFixed(1)+'" y2="'+ty.toFixed(1)+'"></line>';
+      labelSvg += '<text class="range-label" x="'+(W-2)+'" y="'+(ty+3).toFixed(1)+'" text-anchor="end">'+escapeHTML(fmtNum(test.threshold.value))+'</text>';
+    }
+
+    var linePts = pts.map(function(p){
+      return X(new Date(p[0]+"T00:00:00").getTime()).toFixed(1)+","+Y(p[1]).toFixed(1);
+    }).join(" ");
+    markSvg += '<polyline class="series-line" points="'+linePts+'"></polyline>';
+
+    pts.forEach(function(p){
+      var cx = X(new Date(p[0]+"T00:00:00").getTime());
+      var cy = Y(p[1]);
+      var flag = p[2] || null;
+      var tip = test.name+": "+p[1]+(test.unit?(" "+test.unit):"")+" — "+fmtDateFull(p[0])+(flag?(" ("+flagText(flag)+")"):"");
+      if(flag){
+        markSvg += '<rect class="dot dot-flag" x="'+(cx-4).toFixed(1)+'" y="'+(cy-4).toFixed(1)+'" width="8" height="8" transform="rotate(45 '+cx.toFixed(1)+' '+cy.toFixed(1)+')" data-tip="'+escapeHTML(tip)+'"></rect>';
+      } else {
+        markSvg += '<circle class="dot dot-normal" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4" data-tip="'+escapeHTML(tip)+'"></circle>';
+      }
+    });
+
+    var svg = gridSvg + bandSvg + markSvg + labelSvg;
+    return { svg: '<svg viewBox="0 0 '+W+' '+H+'" class="chart-svg" preserveAspectRatio="none">'+svg+'</svg>', last: pts[pts.length-1] };
+  }
+
+  function rangeCaption(test){
+    if(test.range) return "Reference: "+test.range[0]+"–"+test.range[1]+(test.unit?(" "+test.unit):"");
+    if(test.threshold) return test.threshold.label;
+    return "No fixed reference range";
+  }
+
+  // ---------- full render pipeline ----------
+  var sectionsEl = document.getElementById("chartSections");
+  var navEl = document.getElementById("navRow");
+  var tbody = document.getElementById("tableBody");
+  var emptyState = document.getElementById("emptyState");
+
+  function renderAll(records){
+    var built = buildFromRawRecords(records);
+    var DATA = built.DATA, TABLE_ROWS = built.TABLE_ROWS;
+
+    sectionsEl.innerHTML = "";
+    navEl.innerHTML = "";
+    tbody.innerHTML = "";
+
+    var allDates = {}, flagCount = 0, chartCount = 0;
+    var catNames = Object.keys(DATA).sort(function(a,b){ return DATA[b].tests.length - DATA[a].tests.length; });
+
+    catNames.forEach(function(catName){
+      var cat = DATA[catName];
+      chartCount += cat.tests.length;
+      var id = "cat-"+slug(catName);
+      var navA = document.createElement("a");
+      navA.href = "#"+id;
+      navA.textContent = catName;
+      navEl.appendChild(navA);
+
+      var section = document.createElement("section");
+      section.className = "cat";
+      section.id = id;
+      var html = "<h2>"+escapeHTML(catName)+"</h2>";
+      html += '<div class="grid">';
+      cat.tests.forEach(function(test){
+        test.points.forEach(function(p){
+          allDates[p[0]] = true;
+          if(p[2]) flagCount++;
+        });
+        var chart = buildChartSVG(test);
+        var last = chart.last;
+        var lastFlagged = last && test.points[test.points.length-1][2];
+        html += '<div class="card" data-name="'+escapeHTML(test.name.toLowerCase())+'">'
+          + '<div class="card-head">'
+          + '<div class="card-title">'+escapeHTML(test.name)+'</div>'
+          + (last ? '<div class="card-value'+(lastFlagged?' flag':'')+'">'+escapeHTML(String(last[1]))+'<span class="unit">'+escapeHTML(test.unit||"")+'</span></div>' : '')
+          + '</div>'
+          + chart.svg
+          + '<div class="card-foot">'+escapeHTML(rangeCaption(test))+'</div>'
+          + '</div>';
+      });
+      html += '</div>';
+      section.innerHTML = html;
+      sectionsEl.appendChild(section);
+    });
+
+    if(catNames.length){
+      var navTable = document.createElement("a");
+      navTable.href = "#cat-table";
+      navTable.textContent = "Notable findings & screening";
+      navEl.appendChild(navTable);
+    }
+    emptyState.hidden = catNames.length > 0;
+
+    var rows = TABLE_ROWS.slice();
+    rows.forEach(function(r){
+      allDates[r[0]] = true;
+      if(r[5]) flagCount++;
+      var tr = document.createElement("tr");
+      tr.setAttribute("data-name", String(r[2]).toLowerCase());
+      tr.innerHTML = '<td class="muted">'+escapeHTML(fmtDateFull(r[0]))+'</td>'
+        + '<td class="muted">'+escapeHTML(r[1])+'</td>'
+        + '<td class="tname">'+escapeHTML(r[2])+'</td>'
+        + '<td>'+escapeHTML(r[3])+'</td>'
+        + '<td class="muted">'+escapeHTML(r[4])+'</td>'
+        + '<td>'+(r[5] ? '<span class="'+flagClass(r[5])+'">'+flagText(r[5])+'</span>' : '')+'</td>';
+      tbody.appendChild(tr);
+    });
+    document.getElementById("cat-table").style.display = rows.length ? "" : "none";
+
+    var dateKeys = Object.keys(allDates).sort();
+    document.getElementById("kpiVisits").textContent = dateKeys.length || "–";
+    if(dateKeys.length){
+      var firstY = new Date(dateKeys[0]).getFullYear();
+      var lastY = new Date(dateKeys[dateKeys.length-1]).getFullYear();
+      document.getElementById("kpiSpan").textContent = (lastY-firstY+1);
+      document.getElementById("subhead").textContent =
+        dateKeys.length+" lab visits from "+fmtDateFull(dateKeys[0])+" to "+fmtDateFull(dateKeys[dateKeys.length-1])+".";
+    } else {
+      document.getElementById("kpiSpan").textContent = "–";
+      document.getElementById("subhead").textContent = "No dated results found in this file.";
+    }
+    document.getElementById("kpiCharts").textContent = chartCount;
+    document.getElementById("kpiFlags").textContent = flagCount;
+
+    var searchBox = document.getElementById("searchBox");
+    if(searchBox.value) searchBox.dispatchEvent(new Event("input"));
+
+    return built;
+  }
+
+  // ---------- tooltip ----------
+  var tip = document.getElementById("tooltip");
+  document.addEventListener("mousemove", function(e){
+    var t = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if(t){
+      tip.textContent = t.getAttribute("data-tip");
+      tip.style.left = e.clientX+"px";
+      tip.style.top = e.clientY+"px";
+      tip.classList.add("show");
+    } else {
+      tip.classList.remove("show");
+    }
+  });
+  document.addEventListener("mouseleave", function(){ tip.classList.remove("show"); });
+
+  // ---------- search ----------
+  var searchBox = document.getElementById("searchBox");
+  var searchCount = document.getElementById("searchCount");
+  searchBox.addEventListener("input", function(){
+    var q = searchBox.value.trim().toLowerCase();
+    var visibleCards = 0;
+    document.querySelectorAll("section.cat .card").forEach(function(card){
+      var match = !q || card.getAttribute("data-name").indexOf(q) !== -1;
+      card.style.display = match ? "" : "none";
+      if(match) visibleCards++;
+    });
+    document.querySelectorAll("section.cat:not(#cat-table)").forEach(function(sec){
+      var anyVisible = Array.prototype.some.call(sec.querySelectorAll(".card"), function(c){ return c.style.display !== "none"; });
+      sec.style.display = anyVisible ? "" : "none";
+    });
+    var visibleRows = 0;
+    document.querySelectorAll("#tableBody tr").forEach(function(tr){
+      var match = !q || tr.getAttribute("data-name").indexOf(q) !== -1;
+      tr.style.display = match ? "" : "none";
+      if(match) visibleRows++;
+    });
+    var tableSection = document.getElementById("cat-table");
+    if(tableSection.style.display !== "none" || !q) tableSection.style.display = (!q || visibleRows) ? "" : "none";
+    searchCount.textContent = q ? (visibleCards+visibleRows+" matches") : "";
+  });
+
+  // ---------- load the sibling data file and boot ----------
+  // Loaded as a <script src> (not fetch()) so this works when the page is opened directly
+  // from disk — Chrome and Safari block fetch()/XHR of local files for file:// pages, but
+  // a plain script tag isn't subject to that restriction. The file just needs to set a
+  // global `LAB_RESULTS` array; see README.md.
+  function showNoData(fileName){
+    document.getElementById("noDataFile").textContent = fileName;
+    document.getElementById("noDataState").hidden = false;
+  }
+
+  function showLoaded(){
+    document.getElementById("introCallout").hidden = false;
+    document.getElementById("legendRow").hidden = false;
+    document.getElementById("noDataState").hidden = true;
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var SCRIPT_NAME = params.get("file") || "lab-results.js";
+  document.getElementById("dataFileLabel").textContent = SCRIPT_NAME;
+
+  var loader = document.createElement("script");
+  loader.src = SCRIPT_NAME;
+  loader.onload = function(){
+    if(typeof LAB_RESULTS !== "undefined" && Array.isArray(LAB_RESULTS) && LAB_RESULTS.length){
+      showLoaded();
+      renderAll(LAB_RESULTS);
+    } else {
+      showNoData(SCRIPT_NAME);
+    }
+  };
+  loader.onerror = function(){ showNoData(SCRIPT_NAME); };
+  document.body.appendChild(loader);
+})();
+</script>
+</body>
+</html>
